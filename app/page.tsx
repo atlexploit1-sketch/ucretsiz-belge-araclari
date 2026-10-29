@@ -14,7 +14,46 @@ import {
   X,
   Check,
   Trash2,
+  Scissors,
+  RotateCw,
+  Minimize2,
+  Image as ImageIcon,
+  FileType,
+  Highlighter,
+  Sparkles,
+  LockKeyhole,
 } from "lucide-react";
+
+type ToolCardProps = {
+  icon: typeof Files;
+  title: string;
+  description: string;
+  available?: boolean;
+};
+
+function ToolCard({
+  icon: Icon,
+  title,
+  description,
+  available = false,
+}: ToolCardProps) {
+  return (
+    <article>
+      <Icon aria-hidden="true" />
+      <h3>{title}</h3>
+      <p>{description}</p>
+      <span className={available ? "available" : undefined}>
+        {available ? (
+          <>
+            <Check size={14} /> Kullanılabilir
+          </>
+        ) : (
+          "Yakında"
+        )}
+      </span>
+    </article>
+  );
+}
 
 export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -35,7 +74,7 @@ export default function Home() {
     setFiles((previous) => [...previous, ...pdfs]);
 
     if (pdfs.length !== chosen.length) {
-      setMessage("Yalnızca PDF dosyaları eklenebilir.");
+      setMessage("Bazı dosyalar eklenmedi. Yalnızca PDF dosyaları seçebilirsin.");
     } else if (pdfs.length > 0) {
       setMessage("");
     }
@@ -48,7 +87,7 @@ export default function Home() {
 
   async function mergePdfs() {
     if (files.length < 2) {
-      setMessage("Birleştirmek için en az iki PDF dosyası seç.");
+      setMessage("Birleştirmek için en az iki PDF dosyası seçmelisin.");
       return;
     }
 
@@ -88,7 +127,7 @@ export default function Home() {
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 
       setMessage(
-        "PDF dosyaların birleştirildi! İndirilenler klasörünü kontrol et."
+        "PDF dosyaların başarıyla birleştirildi. İndirilenler klasörünü kontrol et."
       );
     } catch (error) {
       console.error("PDF birleştirme hatası:", error);
@@ -99,6 +138,76 @@ export default function Home() {
       setBusy(false);
     }
   }
+
+  const pdfTools: ToolCardProps[] = [
+    {
+      icon: Files,
+      title: "PDF birleştir",
+      description: "Birden fazla PDF dosyasını tek belgede birleştir.",
+      available: true,
+    },
+    {
+      icon: Scissors,
+      title: "PDF böl",
+      description: "Sayfaları ayır ve ihtiyacın olan bölümleri çıkar.",
+    },
+    {
+      icon: RotateCw,
+      title: "PDF sayfalarını döndür",
+      description: "Yanlış yöndeki sayfaları düzelt.",
+    },
+    {
+      icon: Minimize2,
+      title: "PDF sıkıştır",
+      description: "Dosya boyutunu küçültmeye yardımcı ol.",
+    },
+    {
+      icon: ImageIcon,
+      title: "PDF'den görsel çıkar",
+      description: "PDF sayfalarını görsel olarak dışa aktar.",
+    },
+    {
+      icon: LockKeyhole,
+      title: "PDF koruması",
+      description: "Belgeler için parola koruma araçları.",
+    },
+  ];
+
+  const conversionTools: ToolCardProps[] = [
+    {
+      icon: FileType,
+      title: "Word → PDF",
+      description: "Word belgelerini PDF biçimine dönüştür.",
+    },
+    {
+      icon: ImageIcon,
+      title: "Görsel → PDF",
+      description: "JPG ve PNG görsellerinden PDF oluştur.",
+    },
+    {
+      icon: FileText,
+      title: "PDF → Word",
+      description: "PDF içeriğini düzenlenebilir belgeye dönüştür.",
+    },
+  ];
+
+  const studentTools: ToolCardProps[] = [
+    {
+      icon: Highlighter,
+      title: "PDF üzerine not al",
+      description: "Ders notlarını vurgula ve önemli yerleri işaretle.",
+    },
+    {
+      icon: Sparkles,
+      title: "Ders notu yardımcısı",
+      description: "Özet ve çalışma materyali hazırlama araçları.",
+    },
+    {
+      icon: GraduationCap,
+      title: "Öğrenci merkezi",
+      description: "Ders çalışmayı kolaylaştıran araçları keşfet.",
+    },
+  ];
 
   return (
     <main>
@@ -113,8 +222,9 @@ export default function Home() {
           </span>
         </a>
 
-        <nav className="nav-links">
+        <nav className="nav-links" aria-label="Ana menü">
           <a href="#araclar">Araçlar</a>
+          <a href="#donustur">Dönüştür</a>
           <a href="#ogrenciler">Öğrenciler için</a>
         </nav>
       </header>
@@ -130,9 +240,9 @@ export default function Home() {
           </h1>
 
           <p>
-            PDF belgelerini kolayca birleştir. Öğrenciler için
-            erişilebilir, sade ve gizliliğe önem veren araçlar
-            geliştiriyoruz.
+            PDF belgelerini kolayca düzenle. Öğrenciler ve
+            herkes için erişilebilir, sade ve gizliliğe önem
+            veren belge araçları geliştiriyoruz.
           </p>
 
           <a className="primary-button" href="#birlestir">
@@ -171,6 +281,7 @@ export default function Home() {
               event.preventDefault();
               addFiles(event.dataTransfer.files);
             }}
+            aria-label="PDF dosyalarını seç veya buraya sürükle"
           >
             <UploadCloud size={38} />
             <strong>PDF dosyalarını seç</strong>
@@ -254,47 +365,66 @@ export default function Home() {
       </section>
 
       <section className="tools" id="araclar">
-        <span className="eyebrow">İhtiyacın olan araçlar</span>
+        <span className="eyebrow">PDF işlemleri</span>
         <h2>
           Belge işlerin için <span className="blue">tek adres</span>
         </h2>
+        <p>
+          Günlük belge işlemlerini kolaylaştıran araçlar.
+          Kullanıma hazır olanları hemen deneyebilirsin.
+        </p>
 
         <div className="tool-grid">
-          <article>
-            <Files />
-            <h3>PDF birleştir</h3>
-            <p>Birden fazla dosyayı tek PDF yap.</p>
-            <span className="available">
-              <Check size={14} /> Kullanılabilir
-            </span>
-          </article>
-
-          <article>
-            <FileText />
-            <h3>PDF böl</h3>
-            <p>İstediğin sayfaları ayrı belgelere ayır.</p>
-            <span>Geliştirme planında</span>
-          </article>
-
-          <article>
-            <GraduationCap />
-            <h3>Öğrenci araçları</h3>
-            <p>Ders materyallerini düzenlemeye yardımcı araçlar.</p>
-            <span>Geliştirme planında</span>
-          </article>
+          {pdfTools.map((tool) => (
+            <ToolCard key={tool.title} {...tool} />
+          ))}
         </div>
       </section>
 
-      <section className="student-section" id="ogrenciler">
+      <section className="tools" id="donustur">
+        <span className="eyebrow">Dosya dönüştürme</span>
+        <h2>
+          Dosyalarını <span className="blue">dönüştür</span>
+        </h2>
+        <p>
+          Farklı belge biçimleri arasında geçiş için planlanan araçlar.
+        </p>
+
+        <div className="tool-grid">
+          {conversionTools.map((tool) => (
+            <ToolCard key={tool.title} {...tool} />
+          ))}
+        </div>
+      </section>
+
+      <section className="tools" id="ogrenciler">
+        <span className="eyebrow">Öğrencilere özel</span>
+        <h2>
+          Ders çalışmak <span className="blue">daha kolay</span>
+        </h2>
+        <p>
+          Ders materyallerini düzenlemeye ve öğrenme sürecini
+          kolaylaştırmaya yardımcı olacak araçlar.
+        </p>
+
+        <div className="tool-grid">
+          {studentTools.map((tool) => (
+            <ToolCard key={tool.title} {...tool} />
+          ))}
+        </div>
+      </section>
+
+      <section className="student-section">
         <div className="student-icon">
           <GraduationCap size={42} />
         </div>
         <div>
           <h2>Eğitim materyaline erişmek zor olmamalı.</h2>
           <p>
-            Temel belge araçlarının herkes tarafından
-            kullanılabilmesini istiyoruz. Bu projeyi özellikle
-            öğrencilerin ihtiyaçlarını düşünerek geliştiriyoruz.
+            Temel belge araçlarının herkes tarafından kullanılabilmesini
+            istiyoruz. Belge Dostu'nu özellikle öğrencilerin ihtiyaçlarını
+            düşünerek geliştiriyoruz. Amacımız, kullanışlı araçları
+            olabildiğince erişilebilir sunmak.
           </p>
         </div>
       </section>
@@ -302,9 +432,7 @@ export default function Home() {
       <footer>
         <strong>belgedostu</strong>
         <p>İnsanların işini kolaylaştırmak için, herkes için.</p>
-        <small>
-          © {new Date().getFullYear()} Belge Dostu
-        </small>
+        <small>© {new Date().getFullYear()} Belge Dostu</small>
       </footer>
     </main>
   );
