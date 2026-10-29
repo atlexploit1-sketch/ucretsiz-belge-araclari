@@ -1,0 +1,311 @@
+
+"use client";
+
+import { useRef, useState } from "react";
+import { PDFDocument } from "pdf-lib";
+import {
+  FileText,
+  Files,
+  UploadCloud,
+  ShieldCheck,
+  Heart,
+  GraduationCap,
+  ArrowDownToLine,
+  X,
+  Check,
+  Trash2,
+} from "lucide-react";
+
+export default function Home() {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  function addFiles(selected: FileList | null) {
+    if (!selected) return;
+
+    const chosen = Array.from(selected);
+    const pdfs = chosen.filter(
+      (file) =>
+        file.type === "application/pdf" ||
+        file.name.toLowerCase().endsWith(".pdf")
+    );
+
+    setFiles((previous) => [...previous, ...pdfs]);
+
+    if (pdfs.length !== chosen.length) {
+      setMessage("Yalnızca PDF dosyaları eklenebilir.");
+    } else if (pdfs.length > 0) {
+      setMessage("");
+    }
+  }
+
+  function removeFile(index: number) {
+    setFiles((previous) => previous.filter((_, i) => i !== index));
+    setMessage("");
+  }
+
+  async function mergePdfs() {
+    if (files.length < 2) {
+      setMessage("Birleştirmek için en az iki PDF dosyası seç.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const output = await PDFDocument.create();
+
+      for (const file of files) {
+        const fileBytes = await file.arrayBuffer();
+        const pdf = await PDFDocument.load(fileBytes);
+        const pages = await output.copyPages(
+          pdf,
+          pdf.getPageIndices()
+        );
+
+        pages.forEach((page) => output.addPage(page));
+      }
+
+      const bytes = await output.save();
+      const safeBytes = new Uint8Array(bytes);
+      const blob = new Blob(
+        [safeBytes.buffer as ArrayBuffer],
+        { type: "application/pdf" }
+      );
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = "birlesik-belge.pdf";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+      setMessage(
+        "PDF dosyaların birleştirildi! İndirilenler klasörünü kontrol et."
+      );
+    } catch (error) {
+      console.error("PDF birleştirme hatası:", error);
+      setMessage(
+        "Bir PDF okunamadı. Dosyanın sağlam ve parola korumasız olduğundan emin ol."
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main>
+      <header className="topbar">
+        <a className="brand" href="#" aria-label="Belge Dostu ana sayfa">
+          <span className="brand-icon">
+            <FileText size={25} />
+          </span>
+          <span>
+            belge<span className="blue">dostu</span>
+            <small>Ücretsiz belge araçları</small>
+          </span>
+        </a>
+
+        <nav className="nav-links">
+          <a href="#araclar">Araçlar</a>
+          <a href="#ogrenciler">Öğrenciler için</a>
+        </nav>
+      </header>
+
+      <section className="hero">
+        <div className="hero-copy">
+          <span className="eyebrow">✦ Herkes için ücretsiz</span>
+
+          <h1>
+            Belgelerin hazır.
+            <br />
+            <span className="blue">İşin kolay.</span>
+          </h1>
+
+          <p>
+            PDF belgelerini kolayca birleştir. Öğrenciler için
+            erişilebilir, sade ve gizliliğe önem veren araçlar
+            geliştiriyoruz.
+          </p>
+
+          <a className="primary-button" href="#birlestir">
+            PDF birleştirmeye başla ↓
+          </a>
+
+          <div className="trust">
+            <span>
+              <ShieldCheck size={17} />
+              Dosyaların cihazında işlenir
+            </span>
+            <span>
+              <Heart size={17} />
+              Ücretsiz kullanım hedefi
+            </span>
+          </div>
+        </div>
+
+        <section className="upload-card" id="birlestir">
+          <div className="card-heading">
+            <span className="card-icon">
+              <Files size={23} />
+            </span>
+            <div>
+              <h2>PDF birleştir</h2>
+              <p>Birden fazla PDF'yi tek dosyada topla.</p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="dropzone"
+            onClick={() => inputRef.current?.click()}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault();
+              addFiles(event.dataTransfer.files);
+            }}
+          >
+            <UploadCloud size={38} />
+            <strong>PDF dosyalarını seç</strong>
+            <span>veya dosyaları bu alana sürükle</span>
+          </button>
+
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".pdf,application/pdf"
+            multiple
+            hidden
+            onChange={(event) => {
+              addFiles(event.target.files);
+              event.target.value = "";
+            }}
+          />
+
+          {files.length > 0 && (
+            <div className="file-list">
+              <div className="file-list-heading">
+                <strong>{files.length} dosya seçildi</strong>
+                <button
+                  type="button"
+                  className="clear-button"
+                  onClick={() => {
+                    setFiles([]);
+                    setMessage("");
+                  }}
+                >
+                  <Trash2 size={14} /> Tümünü sil
+                </button>
+              </div>
+
+              {files.map((file, index) => (
+                <div
+                  className="file-row"
+                  key={`${file.name}-${file.size}-${index}`}
+                >
+                  <FileText size={20} />
+                  <span className="file-name">{file.name}</span>
+                  <small>
+                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                  </small>
+                  <button
+                    type="button"
+                    className="remove"
+                    aria-label={`${file.name} dosyasını kaldır`}
+                    onClick={() => removeFile(index)}
+                  >
+                    <X size={17} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {files.length > 0 && (
+            <button
+              type="button"
+              className="primary-button merge-button"
+              disabled={busy}
+              onClick={mergePdfs}
+            >
+              <ArrowDownToLine size={18} />
+              {busy ? "Birleştiriliyor..." : "PDF'leri birleştir ve indir"}
+            </button>
+          )}
+
+          {message && (
+            <p className="message" role="status">
+              {message}
+            </p>
+          )}
+
+          <p className="privacy">
+            <ShieldCheck size={15} />
+            Birleştirme işlemi tarayıcında gerçekleşir.
+          </p>
+        </section>
+      </section>
+
+      <section className="tools" id="araclar">
+        <span className="eyebrow">İhtiyacın olan araçlar</span>
+        <h2>
+          Belge işlerin için <span className="blue">tek adres</span>
+        </h2>
+
+        <div className="tool-grid">
+          <article>
+            <Files />
+            <h3>PDF birleştir</h3>
+            <p>Birden fazla dosyayı tek PDF yap.</p>
+            <span className="available">
+              <Check size={14} /> Kullanılabilir
+            </span>
+          </article>
+
+          <article>
+            <FileText />
+            <h3>PDF böl</h3>
+            <p>İstediğin sayfaları ayrı belgelere ayır.</p>
+            <span>Geliştirme planında</span>
+          </article>
+
+          <article>
+            <GraduationCap />
+            <h3>Öğrenci araçları</h3>
+            <p>Ders materyallerini düzenlemeye yardımcı araçlar.</p>
+            <span>Geliştirme planında</span>
+          </article>
+        </div>
+      </section>
+
+      <section className="student-section" id="ogrenciler">
+        <div className="student-icon">
+          <GraduationCap size={42} />
+        </div>
+        <div>
+          <h2>Eğitim materyaline erişmek zor olmamalı.</h2>
+          <p>
+            Temel belge araçlarının herkes tarafından
+            kullanılabilmesini istiyoruz. Bu projeyi özellikle
+            öğrencilerin ihtiyaçlarını düşünerek geliştiriyoruz.
+          </p>
+        </div>
+      </section>
+
+      <footer>
+        <strong>belgedostu</strong>
+        <p>İnsanların işini kolaylaştırmak için, herkes için.</p>
+        <small>
+          © {new Date().getFullYear()} Belge Dostu
+        </small>
+      </footer>
+    </main>
+  );
+}
